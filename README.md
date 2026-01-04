@@ -1,19 +1,26 @@
-# ChaosTech NSD – Investor Simulator
+# ChaosTech NSD Simulator
 
-Interactive Neuro Swarm Disruptor (NSD) simulation used for investor demos and defense briefings. Features multi-swarm scenarios, RF jamming, environmental effects, hardened threats, and ROI metrics.
+**Neuro Swarm Disruptor** – Interactive counter-UAS command system demo for investors and defense procurement.
 
-## Live Demo
+## 🎮 Live Demo
+https://chaostechhq.github.io/chaostech-nsd-simulator
 
-https://ChaosTechHQ.github.io/chaostech-nsd-simulator
+## Features
+- **5 tactical scenarios**: Airport defense, urban swarm, coordinated attack, etc.
+- **Real physics**: Weather degradation, terrain effects, hardened threats (20% resistance).
+- **ROI metrics**: Cost-per-drone, 6,000x infrastructure protection ROI.
+- **Export reports**: NDAA-compliant engagement summaries.
+- **RF signatures**: Multi-band selective jamming.
 
-## How to Run Locally
-
-1. Download or clone this repo.
-2. Open `index.html` in Chrome.
-3. Use the scenario buttons and GLOBAL JAM / SELECTIVE actions to explore the system.
+## Quick Start
+1. Click **SCENARIOS** → "Airport Defense"
+2. Watch swarm formation (DIAMOND/WEDGE/LINE).
+3. Hit **GLOBAL JAM** → see effectiveness drop in rain/mountains.
+4. Check **ROI METRICS** → export PDF.
 
 ## Contact
-
-ChaosTech Defense LLC  
-Founder & CEO: Daivon Brown  
-Email: DaivonBrown@chaostechdefensellc.com
+**Daivon Brown**  
+Founder & CEO, ChaosTech Defense LLC  
+📧 DaivonBrown@chaostechdefensellc.com  
+📱 (202) 830-6292  
+🌐 chaostechdefensellc.com
