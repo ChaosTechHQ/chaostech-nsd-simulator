@@ -663,19 +663,46 @@
             document.getElementById('hopPrediction').textContent = `Next: ${freqs[Math.min(idx, freqs.length - 1)]}`;
         }
 
+        let metricsCache = {
+            detectionSpeed: '0 ms',
+            detectionRange: '0 m',
+            detectionAccuracy: '0%',
+            trackingRange: '0 m',
+            trackingAccuracy: '0%',
+            mitigationSuccess: '0%',
+            coverage: '0 m²',
+            reliability: '0%',
+            lastUpdate: 0
+        };
+
         function updatePerformanceMetrics() {
+            const now = Date.now();
+            // Only update metrics every 3 seconds to prevent flickering
+            if (now - metricsCache.lastUpdate < 3000) return;
+            
             const hostiles = state.drones.filter(d => d.type === 'Hostile');
             const range = Math.round(Math.min(canvas.width, canvas.height) / 2);
             const mitigated = state.drones.filter(d => d.jammed).length;
             
-            document.getElementById('detectionSpeed').textContent = (500 + Math.random() * 1500).toFixed(0) + ' ms';
-            document.getElementById('detectionRange').textContent = range + ' m';
-            document.getElementById('detectionAccuracy').textContent = (hostiles.length > 0 ? 95 + Math.floor(Math.random() * 4) : 100) + '%';
-            document.getElementById('trackingRange').textContent = range + ' m';
-            document.getElementById('trackingAccuracy').textContent = (hostiles.length > 0 ? 93 + Math.floor(Math.random() * 4) : 100) + '%';
-            document.getElementById('mitigationSuccess').textContent = (hostiles.length > 0 ? Math.floor((mitigated / hostiles.length) * 100) : 0) + '%';
-            document.getElementById('coverage').textContent = (canvas.width * canvas.height) + ' m²';
-            document.getElementById('reliability').textContent = (hostiles.length > 0 ? 95 + Math.floor(Math.random() * 4) : 100) + '%';
+            metricsCache.detectionSpeed = (500 + Math.random() * 1500).toFixed(0) + ' ms';
+            metricsCache.detectionRange = range + ' m';
+            metricsCache.detectionAccuracy = (hostiles.length > 0 ? 95 + Math.floor(Math.random() * 4) : 100) + '%';
+            metricsCache.trackingRange = range + ' m';
+            metricsCache.trackingAccuracy = (hostiles.length > 0 ? 93 + Math.floor(Math.random() * 4) : 100) + '%';
+            metricsCache.mitigationSuccess = (hostiles.length > 0 ? Math.floor((mitigated / hostiles.length) * 100) : 0) + '%';
+            metricsCache.coverage = (canvas.width * canvas.height) + ' m²';
+            metricsCache.reliability = (hostiles.length > 0 ? 95 + Math.floor(Math.random() * 4) : 100) + '%';
+            metricsCache.lastUpdate = now;
+            
+            // Push cached values to DOM
+            document.getElementById('detectionSpeed').textContent = metricsCache.detectionSpeed;
+            document.getElementById('detectionRange').textContent = metricsCache.detectionRange;
+            document.getElementById('detectionAccuracy').textContent = metricsCache.detectionAccuracy;
+            document.getElementById('trackingRange').textContent = metricsCache.trackingRange;
+            document.getElementById('trackingAccuracy').textContent = metricsCache.trackingAccuracy;
+            document.getElementById('mitigationSuccess').textContent = metricsCache.mitigationSuccess;
+            document.getElementById('coverage').textContent = metricsCache.coverage;
+            document.getElementById('reliability').textContent = metricsCache.reliability;
             document.getElementById('score').textContent = state.score;
         }
 
