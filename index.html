@@ -120,7 +120,54 @@
             background: linear-gradient(90deg, #00ff00, #ffff00, #ff0000);
             transition: width 0.3s ease;
         }
-        
+
+        .rf-spectrum-panel {
+            position: absolute;
+            top: 20px;
+            left: 10px;
+            width: 200px;
+            background: rgba(0,0,0,0.9);
+            border: 2px solid #00ffff;
+            padding: 10px;
+            font-size: 9px;
+            z-index: 100;
+            border-radius: 6px;
+        }
+
+        .freq-bar {
+            display: flex;
+            gap: 3px;
+            margin: 6px 0;
+            align-items: center;
+        }
+
+        .freq-label {
+            color: #00ffff;
+            min-width: 45px;
+            font-size: 8px;
+        }
+
+        .freq-indicator {
+            flex: 1;
+            height: 8px;
+            background: #1a1a2e;
+            border: 1px solid #00ffff;
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .freq-active {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #00ffff);
+            animation: pulse 0.6s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
         .compliance-footer {
             position: fixed;
             bottom: 10px;
@@ -148,11 +195,11 @@
 </head>
 <body>
     <div id="demoModeBanner">
-        🔴 DEMO MODE - SIMULATION ONLY - NSD v17 WITH ACOUSTIC DECOY & KINETIC INTERCEPTOR
+        🔴 DEMO MODE - SIMULATION ONLY - NSD v17 WITH RF HOPPING + ACOUSTIC DECOY & KINETIC INTERCEPTOR
     </div>
     
     <div id="complianceBanner">
-        SIMULATION ONLY • NO RF TRANSMIT • CONCEPT DEMO | Modules: Bio-Mimetic Acoustic Decoy + Drone-Mounted Kinetic Interceptor
+        SIMULATION ONLY • NO RF TRANSMIT • CONCEPT DEMO | Modules: RF Hopping + Bio-Mimetic Acoustic Decoy + Drone-Mounted Kinetic Interceptor
     </div>
     
     <div class="compliance-footer">
@@ -163,6 +210,26 @@
         <div class="radar-wrapper">
             <div class="radar" id="radarContainer">
                 <canvas id="radarCanvas"></canvas>
+                
+                <div class="rf-spectrum-panel">
+                    <div style="color:#00ffff; font-weight:bold; margin-bottom:6px;">📡 RF SPECTRUM</div>
+                    <div class="freq-bar">
+                        <div class="freq-label">2.4GHz</div>
+                        <div class="freq-indicator"><div id="freq24" class="freq-active" style="width:0%"></div></div>
+                        <span id="freq24val" style="color:#00ffff; font-size:7px; min-width:20px;">0</span>
+                    </div>
+                    <div class="freq-bar">
+                        <div class="freq-label">5.8GHz</div>
+                        <div class="freq-indicator"><div id="freq58" class="freq-active" style="width:0%"></div></div>
+                        <span id="freq58val" style="color:#00ffff; font-size:7px; min-width:20px;">0</span>
+                    </div>
+                    <div class="freq-bar">
+                        <div class="freq-label">10.5GHz</div>
+                        <div class="freq-indicator"><div id="freq105" class="freq-active" style="width:0%"></div></div>
+                        <span id="freq105val" style="color:#00ffff; font-size:7px; min-width:20px;">0</span>
+                    </div>
+                    <div style="color:#ffff00; font-size:8px; margin-top:8px; border-top:1px solid #00ffff; padding-top:6px;">Hop Rate: <span id="hopRate" style="color:#ff6600;">NORMAL</span></div>
+                </div>
                 
                 <div class="swarm-cohesion-panel">
                     <div style="color:#ff00ff; font-weight:bold; margin-bottom:8px;">🎯 SWARM COHESION</div>
@@ -215,6 +282,9 @@
                 <div class="metric"><span>Detected</span><span class="metric-value" id="detected">0</span></div>
                 <div class="metric"><span>Threats</span><span class="metric-value threat-high" id="threats">0</span></div>
                 <div class="metric"><span>Mitigated (Sim)</span><span class="metric-value threat-low" id="mitigated">0</span></div>
+                <div class="metric"><span>Standard</span><span class="metric-value" id="standardCount">0</span></div>
+                <div class="metric"><span>Hardened</span><span class="metric-value" id="hardenedCount">0</span></div>
+                <div class="metric"><span>Military</span><span class="metric-value" id="militaryCount">0</span></div>
             </div>
             
             <div class="panel">
@@ -222,7 +292,8 @@
                 <button onclick="addDrone('Hostile')" style="width:48%; margin-right:2%;">+ Hostile</button>
                 <button onclick="addDrone('Ally')" style="width:48%;">+ Ally</button>
                 <button onclick="spawnSwarm()" style="width:48%; margin-right:2%;">🐝 SWARM x5</button>
-                <button onclick="resetSimulation()" style="width:48%;">RESET</button>
+                <button onclick="spawnHardenedSwarm()" style="width:48%; margin-top:4px; background:#8800ff; border-color:#8800ff;">🔷 HARDENED x5</button>
+                <button onclick="resetSimulation()" style="width:100%; margin-top:4px;">RESET</button>
             </div>
 
             <div class="panel">
@@ -272,6 +343,16 @@
                 <div class="metric"><span>Success Rate</span><span id="captureRate" class="metric-value">0%</span></div>
             </div>
 
+            <div class="panel module-panel">
+                <div class="panel-title">📡 FREQUENCY-AGILE JAMMING</div>
+                <button id="adaptiveBtn" onclick="activateAdaptiveJamming()" style="width:100%; background:#00aa88; border-color:#00aa88;">📡 ADAPTIVE RF LOCK (SIM)</button>
+                <div id="adaptiveStatus" style="color:#00aa88; font-size:8px; margin-top:6px;"></div>
+                <div class="metric" style="margin-top:6px;"><span>Lock Status</span><span id="lockStatus" class="metric-value">IDLE</span></div>
+                <div class="metric"><span>Primary Band</span><span id="primaryBand" class="metric-value">SCAN</span></div>
+                <div class="metric"><span>Jam Efficacy</span><span id="jamEfficacy" class="metric-value">0%</span></div>
+                <div class="metric"><span>Hops Tracked</span><span id="hopsTracked" class="metric-value">0</span></div>
+            </div>
+
             <div class="panel">
                 <div class="panel-title">🎮 MITIGATION ACTIONS</div>
                 <button onclick="globalMitigation()">WIDE-AREA MIT (SIM)</button>
@@ -287,13 +368,6 @@
                 <div class="metric"><span>ETA (s)</span><span class="metric-value" id="eta">N/A</span></div>
             </div>
             
-            <div class="panel">
-                <div class="panel-title">🛡️ PROTECTED ASSETS (SIM)</div>
-                <button id="airportBtn" onclick="toggleAsset('airport')" style="width:48%; margin-right:2%; font-size:8px; padding:4px;">✈️ Airport</button>
-                <button id="stadiumBtn" onclick="toggleAsset('stadium')" style="width:48%; font-size:8px; padding:4px;">🏟️ Stadium</button>
-                <button id="baseBtn" onclick="toggleAsset('base')" style="width:48%; margin-right:2%; margin-top:4px; font-size:8px; padding:4px;">🪖 Base</button>
-                <button id="convoyBtn" onclick="toggleAsset('convoy')" style="width:48%; font-size:8px; padding:4px;">🚚 Convoy</button>
-            </div>
         </div>
     </div>
 
@@ -316,7 +390,13 @@
             capturedCount: 0,
             acousticSignatures: 0,
             panicLevel: 0,
-            emulationActive: false
+            emulationActive: false,
+            freqSpectrum: { '2.4G': 0, '5.8G': 0, '10.5G': 0 },
+            adaptiveActive: false,
+            trackedHops: [],
+            currentJamBand: null,
+            hopsTracked: 0,
+            jamEfficacy: 0
         };
 
         const weatherMods = { clear: 0, rain: -22, storm: -28 };
@@ -342,8 +422,33 @@
                 this.vy = (Math.random() - 0.5) * 2;
                 this.threat = type === 'Hostile' ? Math.random() * 100 : 0;
                 this.jammed = false;
-                this.rfBand = ['2.4G', '5.8G', '10.5G'][Math.floor(Math.random() * 3)];
-                this.hardened = Math.random() > 0.8;
+                
+                // RF FREQUENCY HOPPING
+                this.frequencyBands = ['2.4G', '5.8G', '10.5G'];
+                this.currentFreqIndex = Math.floor(Math.random() * 3);
+                this.hopTimer = 0;
+                this.hopInterval = Math.random() * 1000 + 1000; // 1-2 seconds
+                
+                // HARDENED DRONE VARIANTS
+                const rand = Math.random();
+                if (type === 'Hostile') {
+                    if (rand > 0.85) {
+                        this.droneClass = 'MILITARY';
+                        this.jamResistance = 0.9;
+                        this.hopInterval *= 1.3; // Military hops slower
+                    } else if (rand > 0.65) {
+                        this.droneClass = 'HARDENED';
+                        this.jamResistance = 0.6;
+                        this.hopInterval *= 1.15; // Hardened hops slightly slower
+                    } else {
+                        this.droneClass = 'STANDARD';
+                        this.jamResistance = 0;
+                    }
+                } else {
+                    this.droneClass = 'ALLY';
+                    this.jamResistance = 0;
+                }
+                
                 this.redirected = false;
                 this.captured = false;
                 this.panicMode = false;
@@ -353,6 +458,14 @@
 
             update() {
                 if (this.jammed || this.captured) return;
+                
+                // UPDATE RF FREQUENCY HOPPING
+                this.hopTimer += 16; // ~60fps
+                if (this.hopTimer >= this.hopInterval) {
+                    this.currentFreqIndex = (this.currentFreqIndex + 1) % 3;
+                    this.hopTimer = 0;
+                    this.hopInterval = Math.random() * 1000 + 1000;
+                }
                 
                 if (this.panicMode) {
                     this.vx += (Math.random() - 0.5) * 0.5;
@@ -377,20 +490,61 @@
                 }
             }
 
+            getCurrentFreq() {
+                return this.frequencyBands[this.currentFreqIndex];
+            }
+
             draw() {
                 let color = this.jammed ? '#ffff00' : (this.type === 'Hostile' ? '#ff0000' : '#00ff00');
                 if (this.captured) color = '#0088ff';
                 if (this.panicMode) color = '#ffaa00';
                 
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
-                ctx.fill();
-                
-                if (this.hardened) {
-                    ctx.strokeStyle = '#ff00ff';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
+                // HARDENED DRONE VISUAL VARIANTS
+                if (this.type === 'Hostile') {
+                    if (this.droneClass === 'STANDARD') {
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (this.droneClass === 'HARDENED') {
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        ctx.moveTo(this.x, this.y - 6);
+                        ctx.lineTo(this.x + 6, this.y);
+                        ctx.lineTo(this.x, this.y + 6);
+                        ctx.lineTo(this.x - 6, this.y);
+                        ctx.closePath();
+                        ctx.fill();
+                        
+                        ctx.strokeStyle = '#ff00ff';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    } else if (this.droneClass === 'MILITARY') {
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        const angle = Math.PI / 4;
+                        for (let i = 0; i < 8; i++) {
+                            const x = this.x + 6 * Math.cos(i * angle);
+                            const y = this.y + 6 * Math.sin(i * angle);
+                            if (i === 0) ctx.moveTo(x, y);
+                            else ctx.lineTo(x, y);
+                        }
+                        ctx.closePath();
+                        ctx.fill();
+                        
+                        ctx.strokeStyle = '#00ffff';
+                        ctx.lineWidth = 2.5;
+                        ctx.stroke();
+                        
+                        ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
+                        ctx.lineWidth = 4;
+                        ctx.stroke();
+                    }
+                } else {
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
+                    ctx.fill();
                 }
             }
         }
@@ -484,7 +638,45 @@
 
             updateUI();
             updateSwarmCohesion();
+            updateRFSpectrum();
             requestAnimationFrame(animate);
+        }
+
+        function updateRFSpectrum() {
+            // Calculate frequency usage across all hostile drones
+            state.freqSpectrum = { '2.4G': 0, '5.8G': 0, '10.5G': 0 };
+            const hostiles = state.drones.filter(d => d.type === 'Hostile');
+            
+            hostiles.forEach(d => {
+                const freq = d.getCurrentFreq();
+                state.freqSpectrum[freq]++;
+            });
+
+            const total = hostiles.length || 1;
+            const freq24pct = Math.round((state.freqSpectrum['2.4G'] / total) * 100);
+            const freq58pct = Math.round((state.freqSpectrum['5.8G'] / total) * 100);
+            const freq105pct = Math.round((state.freqSpectrum['10.5G'] / total) * 100);
+
+            document.getElementById('freq24').style.width = freq24pct + '%';
+            document.getElementById('freq24val').textContent = state.freqSpectrum['2.4G'];
+            
+            document.getElementById('freq58').style.width = freq58pct + '%';
+            document.getElementById('freq58val').textContent = state.freqSpectrum['5.8G'];
+            
+            document.getElementById('freq105').style.width = freq105pct + '%';
+            document.getElementById('freq105val').textContent = state.freqSpectrum['10.5G'];
+
+            // Detect hop rate
+            const avgHopInterval = hostiles.length > 0 
+                ? hostiles.reduce((sum, d) => sum + d.hopInterval, 0) / hostiles.length 
+                : 0;
+            
+            let hopRateLabel = 'SLOW';
+            if (avgHopInterval < 1200) hopRateLabel = 'FAST';
+            if (avgHopInterval < 1050) hopRateLabel = 'EXTREME';
+            if (avgHopInterval > 1500) hopRateLabel = 'SLOW';
+            
+            document.getElementById('hopRate').textContent = hopRateLabel;
         }
 
         function activateAcousticDecoy() {
@@ -566,10 +758,18 @@
             const hostile = state.drones.filter(d => d.type === 'Hostile').length;
             const jammedCount = state.drones.filter(d => d.jammed).length;
             const capturedCount = state.drones.filter(d => d.captured).length;
+            
+            // COUNT DRONE CLASSES
+            const standardCount = state.drones.filter(d => d.type === 'Hostile' && d.droneClass === 'STANDARD').length;
+            const hardenedCount = state.drones.filter(d => d.type === 'Hostile' && d.droneClass === 'HARDENED').length;
+            const militaryCount = state.drones.filter(d => d.type === 'Hostile' && d.droneClass === 'MILITARY').length;
 
             document.getElementById('detected').textContent = state.drones.length;
             document.getElementById('threats').textContent = hostile;
             document.getElementById('mitigated').textContent = (jammedCount + capturedCount);
+            document.getElementById('standardCount').textContent = standardCount;
+            document.getElementById('hardenedCount').textContent = hardenedCount;
+            document.getElementById('militaryCount').textContent = militaryCount;
             document.getElementById('swarmId').textContent = `SWARM-2026-${String(state.droneCounter).padStart(3, '0')}-${state.formation}`;
             document.getElementById('formation').textContent = state.formation;
 
@@ -578,6 +778,7 @@
             updatePerformanceMetrics();
             updateTriangulation();
             updateAIPrediction();
+            updateAdaptiveMetrics();
         }
 
         function updateSwarmCohesion() {
@@ -682,6 +883,15 @@
             }
         }
 
+        function spawnHardenedSwarm() {
+            for (let i = 0; i < 5; i++) {
+                const drone = new Drone('Hostile');
+                drone.droneClass = Math.random() > 0.4 ? 'MILITARY' : 'HARDENED';
+                drone.jamResistance = drone.droneClass === 'MILITARY' ? 0.9 : 0.6;
+                state.drones.push(drone);
+            }
+        }
+
         function setFormation(form) {
             state.formation = form;
             state.drones.forEach(d => {
@@ -701,18 +911,28 @@
             state.interceptorCount = 0;
             state.capturedCount = 0;
             state.emulationActive = false;
+            state.adaptiveActive = false;
+            state.trackedHops = [];
+            state.hopsTracked = 0;
+            state.jamEfficacy = 0;
+            state.currentJamBand = null;
             interceptors = [];
             document.getElementById('emulationBtn').textContent = '🟣 PROTOCOL EMULATION (SIM)';
             document.getElementById('emulationBtn').style.background = '#ff00ff';
             document.getElementById('acousticBtn').textContent = '🔊 DEPLOY ACOUSTIC DECOY';
             document.getElementById('kineticBtn').textContent = '🚁 LAUNCH INTERCEPTOR';
+            document.getElementById('adaptiveBtn').textContent = '📡 ADAPTIVE RF LOCK (SIM)';
+            document.getElementById('adaptiveBtn').style.background = '#00aa88';
+            document.getElementById('adaptiveStatus').textContent = '';
         }
 
         function globalMitigation() {
             state.jamActive = true;
             state.drones.forEach(d => {
-                if (d.type === 'Hostile' && !d.captured && (!d.hardened || Math.random() > 0.25)) {
-                    d.jammed = true;
+                if (d.type === 'Hostile' && !d.captured) {
+                    if (Math.random() > d.jamResistance) {
+                        d.jammed = true;
+                    }
                 }
             });
         }
@@ -720,7 +940,11 @@
         function selectiveMitigation() {
             state.selectiveActive = true;
             const hostile = state.drones.filter(d => d.type === 'Hostile' && !d.jammed && !d.captured);
-            hostile.slice(0, 2).forEach(d => d.jammed = true);
+            hostile.slice(0, 2).forEach(d => {
+                if (Math.random() > d.jamResistance) {
+                    d.jammed = true;
+                }
+            });
         }
 
         function activateProtocolEmulation() {
@@ -769,7 +993,7 @@
         }
 
         function generateAAR() {
-            alert('AAR exported: Mission summary with acoustic decoy + kinetic interceptor stats');
+            alert('AAR exported: Mission summary with RF hopping + acoustic decoy + kinetic interceptor stats');
         }
 
         function updateEnvironment() {
@@ -781,6 +1005,133 @@
             const combined = weatherMod + terrainMod;
             
             document.getElementById('envImpact').textContent = combined + '%';
+        }
+
+        function activateAdaptiveJamming() {
+            if (state.adaptiveActive) {
+                // DEACTIVATE
+                state.adaptiveActive = false;
+                document.getElementById('adaptiveBtn').textContent = '📡 ADAPTIVE RF LOCK (SIM)';
+                document.getElementById('adaptiveBtn').style.background = '#00aa88';
+                document.getElementById('adaptiveStatus').textContent = 'Adaptive lock disengaged';
+                document.getElementById('lockStatus').textContent = 'IDLE';
+                return;
+            }
+
+            // ACTIVATE ADAPTIVE JAMMING
+            state.adaptiveActive = true;
+            state.trackedHops = [];
+            state.hopsTracked = 0;
+            state.jamEfficacy = 0;
+            state.lastAdaptiveUpdate = Date.now();
+            
+            document.getElementById('adaptiveBtn').textContent = '📡 LOCK ACTIVE - TRACKING';
+            document.getElementById('adaptiveBtn').style.background = '#00ff00';
+            document.getElementById('adaptiveStatus').textContent = 'Real-time frequency tracking enabled';
+            document.getElementById('lockStatus').textContent = 'TRACKING';
+
+            // SCAN PHASE: Build frequency profile from current drone activity
+            const hostiles = state.drones.filter(d => d.type === 'Hostile');
+            const freqCounts = { '2.4G': 0, '5.8G': 0, '10.5G': 0 };
+            
+            hostiles.forEach(d => {
+                freqCounts[d.getCurrentFreq()]++;
+            });
+
+            // LOCK onto dominant frequency
+            let dominantFreq = '2.4G';
+            let maxCount = 0;
+            for (let freq in freqCounts) {
+                if (freqCounts[freq] > maxCount) {
+                    maxCount = freqCounts[freq];
+                    dominantFreq = freq;
+                }
+            }
+
+            state.currentJamBand = dominantFreq;
+            state.previousJamBand = null;
+            document.getElementById('primaryBand').textContent = dominantFreq;
+        }
+
+        function updateAdaptiveMetrics() {
+            if (!state.adaptiveActive) {
+                document.getElementById('lockStatus').textContent = 'IDLE';
+                document.getElementById('primaryBand').textContent = 'SCAN';
+                document.getElementById('jamEfficacy').textContent = '0%';
+                document.getElementById('hopsTracked').textContent = '0';
+                return;
+            }
+
+            // RATE LIMIT: Only update adaptive jamming every 500ms to prevent thrashing
+            const now = Date.now();
+            if (now - state.lastAdaptiveUpdate < 500) return;
+            state.lastAdaptiveUpdate = now;
+
+            const hostiles = state.drones.filter(d => d.type === 'Hostile' && !d.captured && !d.jammed);
+            if (hostiles.length === 0) {
+                document.getElementById('jamEfficacy').textContent = '100%';
+                document.getElementById('lockStatus').textContent = 'LOCKED';
+                return;
+            }
+            
+            // ANALYZE CURRENT FREQUENCY DISTRIBUTION
+            const freqCounts = { '2.4G': 0, '5.8G': 0, '10.5G': 0 };
+            hostiles.forEach(d => {
+                freqCounts[d.getCurrentFreq()]++;
+            });
+
+            // DETECT BAND SWITCH (hop tracking)
+            if (state.currentJamBand !== state.previousJamBand && state.previousJamBand !== null) {
+                state.hopsTracked++;
+                if (state.hopsTracked > 99) state.hopsTracked = 0;
+            }
+            state.previousJamBand = state.currentJamBand;
+
+            // ADAPTIVE LOCK: Target current dominant band
+            let bestFreq = state.currentJamBand;
+            let bestCount = freqCounts[bestFreq];
+            
+            // Switch to new dominant band if it has more drones (20% of time predict next)
+            for (let freq in freqCounts) {
+                if (freqCounts[freq] > bestCount) {
+                    if (Math.random() < 0.2) { // 20% prediction success
+                        bestFreq = freq;
+                        bestCount = freqCounts[freq];
+                    }
+                }
+            }
+            
+            state.currentJamBand = bestFreq;
+            document.getElementById('primaryBand').textContent = bestFreq;
+
+            // APPLY JAMMING to drones on current band
+            let jammed = 0;
+            hostiles.forEach(d => {
+                if (d.getCurrentFreq() === state.currentJamBand) {
+                    // Adaptive jamming is 30% more effective (lower resistance threshold)
+                    if (Math.random() > d.jamResistance * 0.7) {
+                        d.jammed = true;
+                        jammed++;
+                    }
+                }
+            });
+
+            state.jamEfficacy = hostiles.length > 0 ? Math.round((jammed / hostiles.length) * 100) : 0;
+            document.getElementById('jamEfficacy').textContent = state.jamEfficacy + '%';
+
+            // UPDATE STATUS based on efficacy
+            if (state.jamEfficacy > 60) {
+                document.getElementById('lockStatus').textContent = 'LOCKED';
+                document.getElementById('adaptiveStatus').textContent = `Locked to ${state.currentJamBand} - ${state.jamEfficacy}% jammed`;
+            } else if (state.jamEfficacy > 30) {
+                document.getElementById('lockStatus').textContent = 'TRACKING';
+                document.getElementById('adaptiveStatus').textContent = `Tracking ${state.currentJamBand} - ${state.jamEfficacy}% jammed`;
+            } else {
+                document.getElementById('lockStatus').textContent = 'SCANNING';
+                document.getElementById('adaptiveStatus').textContent = 'Scanning swarm patterns...';
+            }
+
+            document.getElementById('hopsTracked').textContent = state.hopsTracked;
         }
 
         window.addEventListener('load', () => {
